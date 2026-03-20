@@ -4313,6 +4313,7 @@ export const prefix = (url) => {
   }
 
   // 如果是相对路径，添加 KKMall API 地址前缀
-  const baseUrl = import.meta.env.VITE_APP_BASE_API || 'http://localhost:38081'
+  const rawBaseUrl = import.meta.env.VITE_APP_BASE_API || 'http://localhost:38081'
+  const baseUrl = rawBaseUrl.replace(/\/+$/, '').replace(/\/api$/, '')
   return `${baseUrl}${url.startsWith('/') ? url : '/' + url}`
 }
