@@ -4,6 +4,7 @@ import { ActionBar, ActionBarIcon, ActionBarButton, Divider, Popup, Overlay, Loa
 
 import App from './App.vue'
 import router from './router'
+import { prefixAssetUrl } from './utils/url'
 import 'lib-flexible/flexible'
 
 import './assets/main.css'
@@ -48,12 +49,7 @@ app.use(ActionBarButton)
 // 全局过滤器
 app.config.globalProperties.$filters = {
   prefix(url) {
-    if (url && url.startsWith('http')) {
-      return url
-    } else {
-      url = `http://backend-api-01.newbee.ltd${url}`
-      return url
-    }
+    return prefixAssetUrl(url)
   }
 }
 

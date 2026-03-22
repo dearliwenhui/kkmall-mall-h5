@@ -1,13 +1,9 @@
 import axios from 'axios'
 import { showFailToast } from 'vant'
 import router from '../router'
+import { getApiOrigin } from './url'
 
-console.log('import.meta.env', import.meta.env)
-
-const rawBaseApi = import.meta.env.VITE_APP_BASE_API || 'http://localhost:38081'
-const normalizedBaseApi = rawBaseApi.replace(/\/+$/, '').replace(/\/api$/, '')
-
-axios.defaults.baseURL = normalizedBaseApi
+axios.defaults.baseURL = getApiOrigin()
 axios.defaults.withCredentials = false
 axios.defaults.headers['X-Requested-With'] = 'XMLHttpRequest'
 axios.defaults.headers.post['Content-Type'] = 'application/json'

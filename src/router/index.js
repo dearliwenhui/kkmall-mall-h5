@@ -4,122 +4,30 @@ import Home from '@/views/Home.vue'
 const router = createRouter({
   history: createWebHashHistory(),
   routes: [
-    {
-      path: '/',
-      redirect: '/home'
-    },
-    {
-      path: '/home',
-      name: 'home',
-      component: Home,
-      meta: {
-        index: 1
-      }
-    },
-    {
-      path: '/login',
-      name: 'login',
-      component: () => import('@/views/Login.vue'),
-      meta: {
-        index: 1
-      }
-    },
-    {
-      path: '/user',
-      name: 'user',
-      component: () => import('@/views/User.vue'),
-      meta: {
-        index: 1
-      }
-    },
-    {
-      path: '/product-list',
-      name: 'product-list',
-      component: () => import('@/views/ProductList.vue'),
-      meta: {
-        index: 2
-      }
-    },
-    {
-      path: '/category',
-      name: 'category',
-      component: () => import('@/views/Category.vue'),
-      meta: {
-        index: 1
-      }
-    },
-    {
-      path: '/product/:id',
-      name: 'product',
-      component: () => import('@/views/ProductDetail.vue'),
-      meta: {
-        index: 3
-      }
-    },
-    {
-      path: '/cart',
-      name: 'cart',
-      component: () => import('@/views/Cart.vue'),
-      meta: {
-        index: 1
-      }
-    },
-    {
-      path: '/create-order',
-      name: 'create-order',
-      component: () => import('@/views/CreateOrder.vue'),
-      meta: {
-        index: 2
-      }
-    },
-    {
-      path: '/address',
-      name: 'address',
-      component: () => import('@/views/Address.vue'),
-      meta: {
-        index: 2
-      }
-    },
-    {
-      path: '/address-edit',
-      name: 'address-edit',
-      component: () => import('@/views/AddressEdit.vue'),
-      meta: {
-        index: 3
-      }
-    },
-    {
-      path: '/order',
-      name: 'order',
-      component: () => import('@/views/Order.vue'),
-      meta: {
-        index: 2
-      }
-    },
-    {
-      path: '/order-detail',
-      name: 'order-detail',
-      component: () => import('@/views/OrderDetail.vue'),
-      meta: {
-        index: 3
-      }
-    },
-    {
-      path: '/setting',
-      name: 'setting',
-      component: () => import('@/views/Setting.vue'),
-      meta: {
-        index: 2
-      }
-    },
-    {
-      path: '/about',
-      name: 'about',
-      component: () => import('@/views/About.vue'),
-      meta: {
-        index: 2
-      }
-    },
+    { path: '/', redirect: '/home' },
+    { path: '/home', name: 'home', component: Home, meta: { index: 1 } },
+    { path: '/login', name: 'login', component: () => import('@/views/Login.vue'), meta: { index: 1 } },
+    { path: '/user', name: 'user', component: () => import('@/views/User.vue'), meta: { index: 1 } },
+    { path: '/product-list', name: 'product-list', component: () => import('@/views/ProductList.vue'), meta: { index: 2 } },
+    { path: '/category', name: 'category', component: () => import('@/views/Category.vue'), meta: { index: 1 } },
+    { path: '/product/:id', name: 'product', component: () => import('@/views/ProductDetail.vue'), meta: { index: 3 } },
+    { path: '/cart', name: 'cart', component: () => import('@/views/Cart.vue'), meta: { index: 1 } },
+    { path: '/create-order', name: 'create-order', component: () => import('@/views/CreateOrder.vue'), meta: { index: 2 } },
+    { path: '/address', name: 'address', component: () => import('@/views/Address.vue'), meta: { index: 2 } },
+    { path: '/address-edit', name: 'address-edit', component: () => import('@/views/AddressEdit.vue'), meta: { index: 3 } },
+    { path: '/order', name: 'order', component: () => import('@/views/Order.vue'), meta: { index: 2 } },
+    { path: '/order-detail', name: 'order-detail', component: () => import('@/views/OrderDetail.vue'), meta: { index: 3 } },
+    { path: '/logistics', name: 'logistics', component: () => import('@/views/Logistics.vue'), meta: { index: 4 } },
+    { path: '/favorite', name: 'favorite', component: () => import('@/views/Favorite.vue'), meta: { index: 2 } },
+    { path: '/refund', name: 'refund', component: () => import('@/views/Refund.vue'), meta: { index: 2 } },
+    { path: '/refund-create', name: 'refund-create', component: () => import('@/views/RefundCreate.vue'), meta: { index: 4 } },
+    { path: '/refund-detail', name: 'refund-detail', component: () => import('@/views/RefundDetail.vue'), meta: { index: 4 } },
+    { path: '/coupon', name: 'coupon', component: () => import('@/views/Coupon.vue'), meta: { index: 2 } },
+    { path: '/points', name: 'points', component: () => import('@/views/Points.vue'), meta: { index: 2 } },
+    { path: '/review', name: 'review', component: () => import('@/views/Review.vue'), meta: { index: 2 } },
+    { path: '/review-create', name: 'review-create', component: () => import('@/views/ReviewCreate.vue'), meta: { index: 4 } },
+    { path: '/setting', name: 'setting', component: () => import('@/views/Setting.vue'), meta: { index: 2 } },
+    { path: '/about', name: 'about', component: () => import('@/views/About.vue'), meta: { index: 2 } }
   ]
 })
 

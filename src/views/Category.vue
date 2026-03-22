@@ -74,7 +74,6 @@ const state = reactive({
 
 onMounted(async () => {
   let $screenHeight = document.documentElement.clientHeight
-  console.log('searchWrap.value', searchWrap.value)
   searchWrap.value.style.height = $screenHeight - 100 + 'px'
   showLoadingToast('加载中...')
   const { data } = await getCategory()
@@ -91,7 +90,6 @@ const selectMenu = (index) => {
 }
 
 const selectProduct = (item) => {
-  console.log('item', item.categoryId)
   router.push({ path: '/product-list', query: { categoryId: item.categoryId } })
 }
 </script>

@@ -1,47 +1,50 @@
-<!--
- * 严肃声明：
- * 开源版本请务必保留此注释头信息，若删除我方将保留所有法律责任追究！
- * 本系统已申请软件著作权，受国家版权局知识产权以及国家计算机软件著作权保护！
- * 可正常分享和学习源码，不得用于违法犯罪活动，违者必究！
- * Copyright (c) 2020 陈尼克 all rights reserved.
- * 版权所有，侵权必究！
- *
--->
-
 <template>
-  <div class="order-box">
-    <s-header :name="'我的订单'" :back="'/user'"></s-header>
-    <van-tabs @click-tab="onChangeTab" :color="'#1baeae'" :title-active-color="'#1baeae'" class="order-tab" v-model="state.status">
-      <van-tab title="全部" name=''></van-tab>
-      <van-tab title="待付款" name="0"></van-tab>
-      <van-tab title="待确认" name="1"></van-tab>
-      <van-tab title="待发货" name="2"></van-tab>
-      <van-tab title="已发货" name="3"></van-tab>
-      <van-tab title="交易完成" name="4"></van-tab>
+  <div class="order-page">
+    <s-header :name="texts.title" :back="'/user'" />
+    <van-tabs
+      v-model="state.status"
+      class="order-tab"
+      :color="'#1baeae'"
+      :title-active-color="'#1baeae'"
+      @click-tab="onChangeTab"
+    >
+      <van-tab :title="texts.all" name=""></van-tab>
+      <van-tab :title="texts.pendingPay" name="0"></van-tab>
+      <van-tab :title="texts.pendingShip" name="1"></van-tab>
+      <van-tab :title="texts.pendingReceive" name="2"></van-tab>
+      <van-tab :title="texts.completed" name="3"></van-tab>
+      <van-tab :title="texts.cancelled" name="4"></van-tab>
     </van-tabs>
     <div class="content">
       <van-pull-refresh v-model="state.refreshing" @refresh="onRefresh" class="order-list-refresh">
         <van-list
           v-model:loading="state.loading"
           :finished="state.finished"
-          finished-text="没有更多了"
+          :finished-text="texts.finished"
           @load="onLoad"
           @offset="10"
         >
-          <div v-for="(item, index) in state.list" :key="index" class="order-item-box" @click="goTo(item.orderId)">
+          <div
+            v-for="item in state.list"
+            :key="item.orderId"
+            class="order-item-box"
+            @click="goTo(item.orderId)"
+          >
             <div class="order-item-header">
-              <span>订单时间：{{ item.createTime }}</span>
+              <span>{{ item.createTime }}</span>
               <span>{{ item.orderStatusString }}</span>
             </div>
             <van-card
               v-for="one in item.newBeeMallOrderItemVOS"
-              :key="one.orderId"
+              :key="`${item.orderId}-${one.goodsId}`"
               :num="one.goodsCount"
               :price="one.sellingPrice"
-              desc="全场包邮"
               :title="one.goodsName"
               :thumb="$filters.prefix(one.goodsCoverImg)"
             />
+          </div>
+          <div v-if="!state.list.length && !state.loading" class="empty">
+            {{ texts.empty }}
           </div>
         </van-list>
       </van-pull-refresh>
@@ -50,12 +53,24 @@
 </template>
 
 <script setup>
-import { reactive } from 'vue';
+import { reactive } from 'vue'
 import sHeader from '@/components/SimpleHeader.vue'
 import { getOrderList } from '@/service/order'
 import { useRouter } from 'vue-router'
 
 const router = useRouter()
+const texts = {
+  title: '\u6211\u7684\u8BA2\u5355',
+  all: '\u5168\u90E8',
+  pendingPay: '\u5F85\u4ED8\u6B3E',
+  pendingShip: '\u5F85\u53D1\u8D27',
+  pendingReceive: '\u5F85\u6536\u8D27',
+  completed: '\u5DF2\u5B8C\u6210',
+  cancelled: '\u5DF2\u53D6\u6D88',
+  finished: '\u6CA1\u6709\u66F4\u591A\u4E86',
+  empty: '\u6682\u65E0\u8BA2\u5355'
+}
+
 const state = reactive({
   status: '',
   loading: false,
@@ -67,15 +82,19 @@ const state = reactive({
 })
 
 const loadData = async () => {
-  const { data, data: { list } } = await getOrderList({ pageNumber: state.page, status: state.status })
-  state.list = state.list.concat(list)
-  state.totalPage = data.totalPage
-  state.loading = false;
-  if (state.page >= data.totalPage) state.finished = true
+  const { data } = await getOrderList({
+    pageNumber: state.page,
+    status: state.status
+  })
+  state.list = state.list.concat(data.list || [])
+  state.totalPage = data.totalPage || 0
+  state.loading = false
+  if (state.page >= state.totalPage || state.totalPage === 0) {
+    state.finished = true
+  }
 }
 
 const onChangeTab = ({ name }) => {
-  // 这里 Tab 最好采用点击事件，@click，如果用 @change 事件，会默认进来执行一次。
   state.status = name
   onRefresh()
 }
@@ -84,19 +103,13 @@ const goTo = (id) => {
   router.push({ path: '/order-detail', query: { id } })
 }
 
-const goBack = () => {
-  router.go(-1)
-}
-
 const onLoad = () => {
   if (!state.refreshing && state.page < state.totalPage) {
-    console.log(state.page)
-    console.log(state.totalPage)
-    state.page = state.page + 1
+    state.page += 1
   }
   if (state.refreshing) {
-    state.list = [];
-    state.refreshing = false;
+    state.list = []
+    state.refreshing = false
   }
   loadData()
 }
@@ -108,66 +121,52 @@ const onRefresh = () => {
   state.page = 1
   onLoad()
 }
+
+onRefresh()
 </script>
 
 <style lang="less" scoped>
-  @import '../common/style/mixin';
-  .order-box {
-    .order-header {
-      position: fixed;
-      top: 0;
-      left: 0;
-      z-index: 10000;
-      .fj();
-      .wh(100%, 44px);
-      line-height: 44px;
-      padding: 0 10px;
-      .boxSizing();
-      color: #252525;
-      background: #fff;
-      border-bottom: 1px solid #dcdcdc;
-      .order-name {
-        font-size: 14px;
-      }
+.order-page {
+  .order-tab {
+    position: fixed;
+    left: 0;
+    z-index: 1000;
+    width: 100%;
+    border-bottom: 1px solid #e9e9e9;
+  }
+  .content {
+    height: calc(~"(100vh - 70px)");
+    overflow: hidden;
+    overflow-y: scroll;
+    margin-top: 34px;
+  }
+  .order-list-refresh {
+    .van-card__content {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
     }
-    .order-tab {
-      position: fixed;
-      left: 0;
-      z-index: 1000;
-      width: 100%;
-      border-bottom: 1px solid #e9e9e9;
+    .van-pull-refresh__head {
+      background: #f9f9f9;
     }
-    .skeleton {
-      margin-top: 60px;
-    }
-    .content {
-      height: calc(~"(100vh - 70px)");
-      overflow: hidden;
-      overflow-y: scroll; 
-      margin-top: 34px;
-    }
-    .order-list-refresh {
-      .van-card__content {
+    .order-item-box {
+      margin: 20px 10px;
+      background-color: #fff;
+      .order-item-header {
+        padding: 10px 20px 0;
         display: flex;
-        flex-direction: column;
-        justify-content: center;
+        justify-content: space-between;
       }
-      .van-pull-refresh__head {
-        background: #f9f9f9;
-      }
-      .order-item-box {
-        margin: 20px 10px;
+      .van-card {
         background-color: #fff;
-        .order-item-header {
-          padding: 10px 20px 0 20px;
-          display: flex;
-          justify-content: space-between;
-        }
-        .van-card {
-          background-color: #fff;
-          margin-top: 0;
-        }
+        margin-top: 0;
       }
+    }
+    .empty {
+      padding: 60px 0;
+      text-align: center;
+      color: #999;
     }
   }
+}
 </style>

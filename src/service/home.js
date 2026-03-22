@@ -1,76 +1,72 @@
 /**
- * KKMall 商城 - 首页 API 服务
- * 适配 KKMall 后端 API
+ * KKMall mall - home APIs.
  */
 
 import axios from '../utils/axios'
 import { adaptProductList } from '../utils/dataAdapter'
 
-/**
- * 获取首页数据
- * 包含轮播图、热门商品、新品推荐等
- */
 export function getHome() {
-  // KKMall 需要组合多个接口来构建首页数据
   return Promise.all([
     getHotGoods(),
     getNewGoods(),
     getRecommendGoods()
   ]).then(([hotGoods, newGoods, recommendGoods]) => {
+    const hotList = hotGoods.data || []
+    const newList = newGoods.data || []
     return {
       code: 200,
-      message: '成功',
+      message: 'success',
       data: {
-        // 轮播图（暂时使用占位数据，后续可以从后端获取）
-        carousels: [],
-        // 热销商品
-        hotGoodses: hotGoods.data || [],
-        // 新品推荐
-        newGoodses: newGoods.data || [],
-        // 推荐商品
+        carousels: buildCarousels(hotList, newList),
+        hotGoodses: hotList,
+        newGoodses: newList,
         recommendGoodses: recommendGoods.data || []
       }
     }
   })
 }
 
-/**
- * 获取热门商品
- */
+function buildCarousels(hotGoods = [], newGoods = []) {
+  const list = [...hotGoods, ...newGoods]
+    .filter(item => item && item.goodsCoverImg)
+    .slice(0, 4)
+
+  return list.map(item => ({
+    carouselUrl: item.goodsCoverImg,
+    redirectUrl: `/#/product/${item.goodsId}`
+  }))
+}
+
 function getHotGoods() {
   return axios.get('/api/mall/products/hot', {
-    params: { pageNum: 1, pageSize: 10 }
+    params: { limit: 10 }
   }).then(res => {
-    if (res.data && res.data.list) {
-      res.data = adaptProductList(res.data.list)
+    if (Array.isArray(res.data)) {
+      res.data = adaptProductList(res.data)
+    } else if (res.data && (res.data.list || res.data.records)) {
+      res.data = adaptProductList(res.data.list || res.data.records)
     }
     return res
   })
 }
 
-/**
- * 获取新品推荐
- */
 function getNewGoods() {
   return axios.get('/api/mall/products', {
-    params: { pageNum: 1, pageSize: 10, sortBy: 'createTime', sortOrder: 'desc' }
+    params: { pageNum: 1, pageSize: 10, sortBy: 'new' }
   }).then(res => {
-    if (res.data && res.data.list) {
-      res.data = adaptProductList(res.data.list)
+    if (res.data && (res.data.list || res.data.records)) {
+      res.data = adaptProductList(res.data.list || res.data.records)
     }
     return res
   })
 }
 
-/**
- * 获取推荐商品
- */
 function getRecommendGoods() {
   return axios.get('/api/mall/products', {
     params: { pageNum: 1, pageSize: 10 }
   }).then(res => {
-    if (res.data && res.data.list) {
-      res.data = adaptProductList(res.data.list)
+    if (res.data && (res.data.list || res.data.records)) {
+      res.data = adaptProductList(res.data.list || res.data.records)
     }
     return res
   })

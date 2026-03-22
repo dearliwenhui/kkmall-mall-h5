@@ -1,87 +1,96 @@
-<!--
- * 严肃声明：
- * 开源版本请务必保留此注释头信息，若删除我方将保留所有法律责任追究！
- * 本系统已申请软件著作权，受国家版权局知识产权以及国家计算机软件著作权保护！
- * 可正常分享和学习源码，不得用于违法犯罪活动，违者必究！
- * Copyright (c) 2020 陈尼克 all rights reserved.
- * 版权所有，侵权必究！
- *
--->
-
 <template>
-  <div class="order-detail-box">
-    <s-header :name="'订单详情'" @callback="close"></s-header>
+  <div class="order-detail-page">
+    <s-header :name="texts.title" />
     <div class="order-status">
-      <div class="status-item">
-        <label>订单状态：</label>
-        <span>{{ state.detail.orderStatusString }}</span>
+      <div class="status-item"><label>{{ texts.status }}</label><span>{{ state.detail.orderStatusString }}</span></div>
+      <div class="status-item"><label>{{ texts.orderNo }}</label><span>{{ state.detail.orderNo }}</span></div>
+      <div class="status-item"><label>{{ texts.createdAt }}</label><span>{{ state.detail.createTime }}</span></div>
+      <div v-if="state.detail.payTime" class="status-item"><label>{{ texts.payTime }}</label><span>{{ state.detail.payTime }}</span></div>
+      <div class="action-list">
+        <van-button v-if="state.detail.orderStatus === 0" block color="#1baeae" @click="showPayPopup">{{ texts.payNow }}</van-button>
+        <van-button v-if="state.detail.orderStatus === 2" block color="#1baeae" @click="handleConfirmOrder(state.detail.orderId)">{{ texts.confirm }}</van-button>
+        <van-button v-if="state.detail.orderStatus >= 2 && state.detail.orderStatus <= 3" plain block color="#1baeae" @click="goToLogistics">{{ texts.logistics }}</van-button>
+        <van-button v-if="state.detail.orderStatus >= 1 && state.detail.orderStatus <= 3" plain block color="#ff976a" @click="goToRefundCreate">{{ texts.refund }}</van-button>
+        <van-button v-if="state.detail.orderStatus === 0" plain block color="#ee0a24" @click="handleCancelOrder(state.detail.orderId)">{{ texts.cancel }}</van-button>
       </div>
-      <div class="status-item">
-        <label>订单编号：</label>
-        <span>{{ state.detail.orderNo }}</span>
-      </div>
-      <div class="status-item">
-        <label>下单时间：</label>
-        <span>{{ state.detail.createTime }}</span>
-      </div>
-      <van-button v-if="state.detail.orderStatus == 3" style="margin-bottom: 10px" color="#1baeae" block @click="handleConfirmOrder(state.detail.orderId)">确认收货</van-button>
-      <van-button v-if="state.detail.orderStatus == 0" style="margin-bottom: 10px" color="#1baeae" block @click="showPayFn">去支付</van-button>
-      <van-button v-if="!(state.detail.orderStatus < 0 || state.detail.orderStatus == 4)" block @click="handleCancelOrder(state.detail.orderId)">取消订单</van-button>
     </div>
     <div class="order-price">
-      <div class="price-item">
-        <label>商品金额：</label>
-        <span>¥ {{ state.detail.totalPrice }}</span>
-      </div>
-      <div class="price-item">
-        <label>配送方式：</label>
-        <span>普通快递</span>
+      <div class="price-item"><label>{{ texts.total }}</label><span>{{ currency(state.detail.totalPrice) }}</span></div>
+      <div v-if="Number(state.detail.totalDiscountAmount || 0) > 0" class="price-item">
+        <label>{{ texts.discount }}</label>
+        <span>-{{ currency(state.detail.totalDiscountAmount) }}</span>
       </div>
     </div>
     <van-card
-      v-for="item in state.detail.newBeeMallOrderItemVOS"
+      v-for="item in state.detail.newBeeMallOrderItemVOS || []"
       :key="item.goodsId"
       style="background: #fff"
       :num="item.goodsCount"
       :price="item.sellingPrice"
-      desc="全场包邮"
       :title="item.goodsName"
       :thumb="$filters.prefix(item.goodsCoverImg)"
-    />
-    <van-popup
-      v-model:show="state.showPay"
-      position="bottom"
-      :style="{ height: '24%' }"
     >
-      <div :style="{ width: '90%', margin: '0 auto', padding: '20px 0' }">
-        <van-button :style="{ marginBottom: '10px' }" color="#1989fa" block @click="handlePayOrder(state.detail.orderNo, 1)">支付宝支付</van-button>
-        <van-button color="#4fc08d" block @click="handlePayOrder(state.detail.orderNo, 2)">微信支付</van-button>
+      <template #footer>
+        <van-button v-if="state.detail.orderStatus === 3" size="mini" plain color="#1baeae" @click.stop="goToReviewCreate(item)">
+          {{ texts.review }}
+        </van-button>
+      </template>
+    </van-card>
+    <van-popup v-model:show="state.showPay" position="bottom" :style="{ height: '24%' }">
+      <div class="pay-popup">
+        <van-button color="#1989fa" block style="margin-bottom: 10px" @click="handlePayOrder(1)">{{ texts.alipay }}</van-button>
+        <van-button color="#4fc08d" block @click="handlePayOrder(2)">{{ texts.wechat }}</van-button>
       </div>
     </van-popup>
   </div>
 </template>
 
 <script setup>
-import { reactive, toRefs, onMounted } from 'vue'
+import { reactive, onMounted } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import { showConfirmDialog, showLoadingToast, closeToast, showSuccessToast } from 'vant'
 import sHeader from '@/components/SimpleHeader.vue'
 import { getOrderDetail, cancelOrder, confirmOrder, payOrder } from '@/service/order'
-import { showConfirmDialog, showLoadingToast, closeToast, showSuccessToast, closeDialog } from 'vant'
-import { useRoute } from 'vue-router'
+
 const route = useRoute()
+const router = useRouter()
+const texts = {
+  title: '\u8BA2\u5355\u8BE6\u60C5',
+  status: '\u8BA2\u5355\u72B6\u6001\uFF1A',
+  orderNo: '\u8BA2\u5355\u7F16\u53F7\uFF1A',
+  createdAt: '\u4E0B\u5355\u65F6\u95F4\uFF1A',
+  payTime: '\u652F\u4ED8\u65F6\u95F4\uFF1A',
+  total: '\u5546\u54C1\u91D1\u989D\uFF1A',
+  discount: '\u4F18\u60E0\u62B5\u6263\uFF1A',
+  payNow: '\u53BB\u652F\u4ED8',
+  confirm: '\u786E\u8BA4\u6536\u8D27',
+  logistics: '\u67E5\u770B\u7269\u6D41',
+  refund: '\u7533\u8BF7\u9000\u6B3E',
+  cancel: '\u53D6\u6D88\u8BA2\u5355',
+  review: '\u53BB\u8BC4\u4EF7',
+  alipay: '\u652F\u4ED8\u5B9D\u652F\u4ED8',
+  wechat: '\u5FAE\u4FE1\u652F\u4ED8',
+  load: '\u52A0\u8F7D\u4E2D...',
+  cancelConfirm: '\u786E\u8BA4\u53D6\u6D88\u8BA2\u5355\uFF1F',
+  confirmConfirm: '\u662F\u5426\u786E\u8BA4\u6536\u8D27\uFF1F',
+  cancelSuccess: '\u53D6\u6D88\u6210\u529F',
+  confirmSuccess: '\u786E\u8BA4\u6210\u529F',
+  paySuccess: '\u652F\u4ED8\u6210\u529F'
+}
+
 const state = reactive({
   detail: {},
   showPay: false
 })
+
+const currency = (value) => `\uFFE5${Number(value || 0).toFixed(2)}`
 
 onMounted(() => {
   init()
 })
 
 const init = async () => {
-  showLoadingToast({
-    message: '加载中...',
-    forbidClick: true
-  });
+  showLoadingToast({ message: texts.load, forbidClick: true })
   const { id } = route.query
   const { data } = await getOrderDetail(id)
   state.detail = data
@@ -89,90 +98,109 @@ const init = async () => {
 }
 
 const handleCancelOrder = (id) => {
-  showConfirmDialog({
-    title: '确认取消订单？',
-  }).then(() => {
-    cancelOrder(id).then(res => {
-      if (res.code == 200) {
-        showSuccessToast('删除成功')
-        init()
-      }
-    })
-  }).catch(() => {
-    // on cancel
-  });
+  showConfirmDialog({ title: texts.cancelConfirm }).then(async () => {
+    const res = await cancelOrder(id)
+    if (res.code === 200) {
+      showSuccessToast(texts.cancelSuccess)
+      init()
+    }
+  }).catch(() => undefined)
 }
 
 const handleConfirmOrder = (id) => {
-  showConfirmDialog({
-    title: '是否确认订单？',
-  }).then(() => {
-    confirmOrder(id).then(res => {
-      if (res.code == 200) {
-        showSuccessToast('确认成功')
-        init()
-      }
-    })
-  }).catch(() => {
-    // on cancel
-  });
+  showConfirmDialog({ title: texts.confirmConfirm }).then(async () => {
+    const res = await confirmOrder(id)
+    if (res.code === 200) {
+      showSuccessToast(texts.confirmSuccess)
+      init()
+    }
+  }).catch(() => undefined)
 }
 
-const showPayFn = () => {
+const showPayPopup = () => {
   state.showPay = true
 }
 
-const handlePayOrder = async (id, type) => {
+const handlePayOrder = async (type) => {
   await payOrder({ orderId: state.detail.orderId, payType: type })
-  showSuccessToast('支付成功')
+  showSuccessToast(texts.paySuccess)
   state.showPay = false
-  init()
+  setTimeout(() => {
+    router.push({ path: '/order' })
+  }, 1200)
 }
 
-const close = () => {
-  closeDialog
+const goToLogistics = () => {
+  router.push({ path: '/logistics', query: { orderId: state.detail.orderId } })
+}
+
+const goToRefundCreate = () => {
+  router.push({
+    path: '/refund-create',
+    query: {
+      orderId: state.detail.orderId,
+      orderNo: state.detail.orderNo,
+      amount: state.detail.totalPrice
+    }
+  })
+}
+
+const goToReviewCreate = (item) => {
+  router.push({
+    path: '/review-create',
+    query: {
+      orderId: state.detail.orderId,
+      orderItemId: item.orderItemId,
+      productId: item.goodsId,
+      goodsName: item.goodsName
+    }
+  })
 }
 </script>
 
 <style lang="less" scoped>
-  .order-detail-box {
-    background: #f7f7f7;
-    .order-status {
-      background: #fff;
-      padding: 20px;
-      font-size: 15px;
-      .status-item {
-        margin-bottom: 10px;
-        label {
-          color: #999;
-        }
-        span {
-
-        }
+.order-detail-page {
+  background: #f7f7f7;
+  .order-status {
+    background: #fff;
+    padding: 20px;
+    font-size: 15px;
+    .status-item {
+      margin-bottom: 10px;
+      label {
+        color: #999;
       }
     }
-    .order-price {
-      background: #fff;
-      margin: 20px 0;
-      padding: 20px;
-      font-size: 15px;
-      .price-item {
-        margin-bottom: 10px;
-        label {
-          color: #999;
-        }
-        span {
-
-        }
-      }
-    }
-    .van-card {
-      margin-top: 0;
-    }
-    .van-card__content {
+    .action-list {
       display: flex;
       flex-direction: column;
-      justify-content: center;
+      gap: 10px;
+      margin-top: 14px;
     }
   }
+  .order-price {
+    background: #fff;
+    margin: 20px 0;
+    padding: 20px;
+    font-size: 15px;
+    .price-item {
+      label {
+        color: #999;
+      }
+    }
+  }
+  .van-card {
+    margin-top: 0;
+  }
+  .van-card__content {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+  .pay-popup {
+    width: 90%;
+    margin: 0 auto;
+    padding: 20px 0;
+  }
+}
 </style>

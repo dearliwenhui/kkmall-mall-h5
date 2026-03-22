@@ -84,12 +84,6 @@ export default {
         probeType: 3,
         click: true
       })
-      this.bs.on('scroll', () => {
-          console.log('scrolling-')
-        })
-        this.bs.on('scrollEnd', () => {
-          console.log('scrollingEnd')
-        })
     } 
   }
 }

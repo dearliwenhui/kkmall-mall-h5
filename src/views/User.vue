@@ -1,57 +1,57 @@
-<!--
- * 严肃声明：
- * 开源版本请务必保留此注释头信息，若删除我方将保留所有法律责任追究！
- * 本系统已申请软件著作权，受国家版权局知识产权以及国家计算机软件著作权保护！
- * 可正常分享和学习源码，不得用于违法犯罪活动，违者必究！
- * Copyright (c) 2020 陈尼克 all rights reserved.
- * 版权所有，侵权必究！
- *
--->
-
 <template>
-  <div class="user-box">
-    <s-header :name="'我的'"></s-header>
+  <div class="user-page">
+    <s-header :name="texts.title"></s-header>
     <van-skeleton title :avatar="true" :row="3" :loading="state.loading">
       <div class="user-info">
         <div class="info">
-          <img src="https://s.yezgea02.com/1604040746310/aaaddd.png"/>
+          <img src="https://s.yezgea02.com/1604040746310/aaaddd.png" />
           <div class="user-desc">
-            <span>昵称：{{ state.user.nickName }}</span>
-            <span>登录名：{{ state.user.loginName }}</span>
-            <span class="name">个性签名：{{ state.user.introduceSign }}</span>
+            <span>{{ texts.nickname }}：{{ state.user.nickName }}</span>
+            <span>{{ texts.username }}：{{ state.user.loginName }}</span>
+            <span>{{ texts.signature }}：{{ state.user.introduceSign }}</span>
           </div>
         </div>
       </div>
     </van-skeleton>
     <ul class="user-list">
-      <li class="van-hairline--bottom" @click="goTo('/order')">
-        <span>我的订单</span>
-        <van-icon name="arrow" />
-      </li>
-      <li class="van-hairline--bottom" @click="goTo('/setting')">
-        <span>账号管理</span>
-        <van-icon name="arrow" />
-      </li>
-      <li class="van-hairline--bottom" @click="goTo('/address', { from: 'mine' })">
-        <span>地址管理</span>
-        <van-icon name="arrow" />
-      </li>
-      <li @click="goTo('/about')">
-        <span>关于我们</span>
-        <van-icon name="arrow" />
-      </li>
+      <li class="van-hairline--bottom" @click="goTo('/order')"><span>{{ texts.orders }}</span><van-icon name="arrow" /></li>
+      <li class="van-hairline--bottom" @click="goTo('/favorite')"><span>{{ texts.favorite }}</span><van-icon name="arrow" /></li>
+      <li class="van-hairline--bottom" @click="goTo('/refund')"><span>{{ texts.refund }}</span><van-icon name="arrow" /></li>
+      <li class="van-hairline--bottom" @click="goTo('/coupon')"><span>{{ texts.coupon }}</span><van-icon name="arrow" /></li>
+      <li class="van-hairline--bottom" @click="goTo('/points')"><span>{{ texts.points }}</span><van-icon name="arrow" /></li>
+      <li class="van-hairline--bottom" @click="goTo('/review')"><span>{{ texts.review }}</span><van-icon name="arrow" /></li>
+      <li class="van-hairline--bottom" @click="goTo('/setting')"><span>{{ texts.account }}</span><van-icon name="arrow" /></li>
+      <li class="van-hairline--bottom" @click="goTo('/address', { from: 'mine' })"><span>{{ texts.address }}</span><van-icon name="arrow" /></li>
+      <li @click="goTo('/about')"><span>{{ texts.about }}</span><van-icon name="arrow" /></li>
     </ul>
     <nav-bar></nav-bar>
   </div>
 </template>
 
 <script setup>
-import { reactive, onMounted, toRefs } from 'vue'
+import { reactive, onMounted } from 'vue'
 import navBar from '@/components/NavBar.vue'
 import sHeader from '@/components/SimpleHeader.vue'
 import { getUserInfo } from '@/service/user'
 import { useRouter } from 'vue-router'
+
 const router = useRouter()
+const texts = {
+  title: '\u6211\u7684',
+  nickname: '\u6635\u79F0',
+  username: '\u767B\u5F55\u540D',
+  signature: '\u4E2A\u6027\u7B7E\u540D',
+  orders: '\u6211\u7684\u8BA2\u5355',
+  favorite: '\u6211\u7684\u6536\u85CF',
+  refund: '\u9000\u6B3E\u552E\u540E',
+  coupon: '\u4F18\u60E0\u5238',
+  points: '\u79EF\u5206\u4E2D\u5FC3',
+  review: '\u6211\u7684\u8BC4\u4EF7',
+  account: '\u8D26\u53F7\u7BA1\u7406',
+  address: '\u5730\u5740\u7BA1\u7406',
+  about: '\u5173\u4E8E\u6211\u4EEC'
+}
+
 const state = reactive({
   user: {},
   loading: true
@@ -63,94 +63,58 @@ onMounted(async () => {
   state.loading = false
 })
 
-const goBack = () => {
-  router.go(-1)
-}
-
-const goTo = (r, query) => {
-  router.push({ path: r, query: query || {} })
+const goTo = (path, query) => {
+  router.push({ path, query: query || {} })
 }
 </script>
 
 <style lang="less" scoped>
-  @import '../common/style/mixin';
-  .user-box {
-    .user-header {
-      position: fixed;
-      top: 0;
-      left: 0;
-      z-index: 10000;
-      .fj();
-      .wh(100%, 44px);
-      line-height: 44px;
-      padding: 0 10px;
+@import '../common/style/mixin';
+.user-page {
+  .user-info {
+    width: 94%;
+    margin: 10px;
+    height: 115px;
+    background: linear-gradient(90deg, @primary, #51c7c7);
+    box-shadow: 0 2px 5px #269090;
+    border-radius: 6px;
+    .info {
+      display: flex;
+      width: 100%;
+      height: 100%;
+      padding: 25px 20px;
       .boxSizing();
-      color: #252525;
-      background: #fff;
-      border-bottom: 1px solid #dcdcdc;
-      .user-name {
-        font-size: 14px;
+      img {
+        .wh(60px, 60px);
+        border-radius: 50%;
+        margin-top: 4px;
       }
-    }
-    .user-info {
-      width: 94%;
-      margin: 10px;
-      height: 115px;
-      background: linear-gradient(90deg, @primary, #51c7c7);
-      box-shadow: 0 2px 5px #269090;
-      border-radius: 6px;
-      .info {
-        position: relative;
+      .user-desc {
         display: flex;
-        width: 100%;
-        height: 100%;
-        padding: 25px 20px;
-        .boxSizing();
-        img {
-          .wh(60px, 60px);
-          border-radius: 50%;
-          margin-top: 4px;
-        }
-        .user-desc {
-          display: flex;
-          flex-direction: column;
-          margin-left: 10px;
-          line-height: 20px;
+        flex-direction: column;
+        margin-left: 10px;
+        line-height: 20px;
+        span {
+          color: #fff;
           font-size: 14px;
-          color: #fff;
-          span {
-            color: #fff;
-            font-size: 14px;
-            padding: 2px 0;
-          }
-        }
-        .account-setting {
-          position: absolute;
-          top: 10px;
-          right: 20px;
-          font-size: 13px;
-          color: #fff;
-          .van-icon-setting-o {
-            font-size: 16px;
-            vertical-align: -3px;
-            margin-right: 4px;
-          }
-        }
-      }
-    }
-    .user-list {
-      padding: 0 20px;
-      margin-top: 20px;
-      li {
-        height: 40px;
-        line-height: 40px;
-        display: flex;
-        justify-content: space-between;
-        font-size: 14px;
-        .van-icon-arrow {
-          margin-top: 13px;
+          padding: 2px 0;
         }
       }
     }
   }
+  .user-list {
+    padding: 0 20px;
+    margin-top: 20px;
+    li {
+      height: 40px;
+      line-height: 40px;
+      display: flex;
+      justify-content: space-between;
+      font-size: 14px;
+      .van-icon-arrow {
+        margin-top: 13px;
+      }
+    }
+  }
+}
 </style>
