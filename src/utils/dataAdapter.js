@@ -34,6 +34,7 @@ export function adaptProductList(kkmallProducts) {
 export function adaptOrder(kkmallOrder) {
   if (!kkmallOrder) return null
 
+  // 将后端订单结构适配为 H5 现有页面所需字段。
   const items = kkmallOrder.items ? adaptOrderItems(kkmallOrder.items) : []
   const originalTotal = items.reduce((sum, item) => {
     return sum + Number(item.sellingPrice || 0) * Number(item.goodsCount || 0)
@@ -51,6 +52,9 @@ export function adaptOrder(kkmallOrder) {
     couponAmount: couponAmount,
     totalDiscountAmount: totalDiscount,
     createTime: kkmallOrder.createTime,
+    // expireTime / remainingSeconds 用于待付款倒计时显示。
+    expireTime: kkmallOrder.expireTime,
+    remainingSeconds: Number(kkmallOrder.remainingSeconds || 0),
     payTime: kkmallOrder.payTime,
     payType: kkmallOrder.payType,
     newBeeMallOrderItemVOS: items

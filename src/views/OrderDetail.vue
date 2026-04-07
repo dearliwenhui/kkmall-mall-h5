@@ -2,16 +2,20 @@
   <div class="order-detail-page">
     <s-header :name="texts.title" />
     <div class="order-status">
-      <div class="status-item"><label>{{ texts.status }}</label><span>{{ state.detail.orderStatusString }}</span></div>
+      <div class="status-item"><label>{{ texts.status }}</label><span>{{ detailStatusText }}</span></div>
       <div class="status-item"><label>{{ texts.orderNo }}</label><span>{{ state.detail.orderNo }}</span></div>
       <div class="status-item"><label>{{ texts.createdAt }}</label><span>{{ state.detail.createTime }}</span></div>
+      <div v-if="state.detail.orderStatus === 0" class="status-item expire-tip">
+        <label>{{ texts.autoCloseIn }}</label>
+        <span>{{ remainingSeconds > 0 ? formatCountdown(remainingSeconds) : texts.timeoutClosing }}</span>
+      </div>
       <div v-if="state.detail.payTime" class="status-item"><label>{{ texts.payTime }}</label><span>{{ state.detail.payTime }}</span></div>
       <div class="action-list">
-        <van-button v-if="state.detail.orderStatus === 0" block color="#1baeae" @click="showPayPopup">{{ texts.payNow }}</van-button>
+        <van-button v-if="canPay" block color="#1baeae" @click="showPayPopup">{{ texts.payNow }}</van-button>
         <van-button v-if="state.detail.orderStatus === 2" block color="#1baeae" @click="handleConfirmOrder(state.detail.orderId)">{{ texts.confirm }}</van-button>
         <van-button v-if="state.detail.orderStatus >= 2 && state.detail.orderStatus <= 3" plain block color="#1baeae" @click="goToLogistics">{{ texts.logistics }}</van-button>
         <van-button v-if="state.detail.orderStatus >= 1 && state.detail.orderStatus <= 3" plain block color="#ff976a" @click="goToRefundCreate">{{ texts.refund }}</van-button>
-        <van-button v-if="state.detail.orderStatus === 0" plain block color="#ee0a24" @click="handleCancelOrder(state.detail.orderId)">{{ texts.cancel }}</van-button>
+        <van-button v-if="canPay" plain block color="#ee0a24" @click="handleCancelOrder(state.detail.orderId)">{{ texts.cancel }}</van-button>
       </div>
     </div>
     <div class="order-price">
@@ -46,7 +50,7 @@
 </template>
 
 <script setup>
-import { reactive, onMounted } from 'vue'
+import { computed, onBeforeUnmount, onMounted, reactive } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { showConfirmDialog, showLoadingToast, closeToast, showSuccessToast } from 'vant'
 import sHeader from '@/components/SimpleHeader.vue'
@@ -55,46 +59,117 @@ import { getOrderDetail, cancelOrder, confirmOrder, payOrder } from '@/service/o
 const route = useRoute()
 const router = useRouter()
 const texts = {
-  title: '\u8BA2\u5355\u8BE6\u60C5',
-  status: '\u8BA2\u5355\u72B6\u6001\uFF1A',
-  orderNo: '\u8BA2\u5355\u7F16\u53F7\uFF1A',
-  createdAt: '\u4E0B\u5355\u65F6\u95F4\uFF1A',
-  payTime: '\u652F\u4ED8\u65F6\u95F4\uFF1A',
-  total: '\u5546\u54C1\u91D1\u989D\uFF1A',
-  discount: '\u4F18\u60E0\u62B5\u6263\uFF1A',
-  payNow: '\u53BB\u652F\u4ED8',
-  confirm: '\u786E\u8BA4\u6536\u8D27',
-  logistics: '\u67E5\u770B\u7269\u6D41',
-  refund: '\u7533\u8BF7\u9000\u6B3E',
-  cancel: '\u53D6\u6D88\u8BA2\u5355',
-  review: '\u53BB\u8BC4\u4EF7',
-  alipay: '\u652F\u4ED8\u5B9D\u652F\u4ED8',
-  wechat: '\u5FAE\u4FE1\u652F\u4ED8',
-  load: '\u52A0\u8F7D\u4E2D...',
-  cancelConfirm: '\u786E\u8BA4\u53D6\u6D88\u8BA2\u5355\uFF1F',
-  confirmConfirm: '\u662F\u5426\u786E\u8BA4\u6536\u8D27\uFF1F',
-  cancelSuccess: '\u53D6\u6D88\u6210\u529F',
-  confirmSuccess: '\u786E\u8BA4\u6210\u529F',
-  paySuccess: '\u652F\u4ED8\u6210\u529F'
+  title: '订单详情',
+  status: '订单状态：',
+  orderNo: '订单编号：',
+  createdAt: '下单时间：',
+  payTime: '支付时间：',
+  total: '商品金额：',
+  discount: '优惠抵扣：',
+  autoCloseIn: '剩余支付时间：',
+  payNow: '去支付',
+  confirm: '确认收货',
+  logistics: '查看物流',
+  refund: '申请退款',
+  cancel: '取消订单',
+  review: '去评价',
+  alipay: '支付宝支付',
+  wechat: '微信支付',
+  load: '加载中...',
+  cancelConfirm: '确认取消订单？',
+  confirmConfirm: '是否确认收货？',
+  cancelSuccess: '取消成功',
+  confirmSuccess: '确认成功',
+  paySuccess: '支付成功',
+  timeoutClosing: '订单超时关闭中'
 }
 
 const state = reactive({
   detail: {},
-  showPay: false
+  showPay: false,
+  now: Date.now(),
+  lastTimeoutRefreshAt: 0
 })
 
-const currency = (value) => `\uFFE5${Number(value || 0).toFixed(2)}`
+let countdownTimer = null
+
+const currency = (value) => `￥${Number(value || 0).toFixed(2)}`
+
+// 详情页和列表页共用同一套倒计时规则，避免显示不一致。
+const remainingSeconds = computed(() => {
+  if (state.detail.orderStatus !== 0) {
+    return 0
+  }
+  if (state.detail.expireTime) {
+    const expireAt = new Date(state.detail.expireTime).getTime()
+    if (!Number.isNaN(expireAt)) {
+      return Math.max(Math.floor((expireAt - state.now) / 1000), 0)
+    }
+  }
+  return Math.max(Number(state.detail.remainingSeconds || 0), 0)
+})
+
+const canPay = computed(() => state.detail.orderStatus === 0 && remainingSeconds.value > 0)
+
+const detailStatusText = computed(() => {
+  if (state.detail.orderStatus === 0 && remainingSeconds.value <= 0) {
+    return texts.timeoutClosing
+  }
+  return state.detail.orderStatusString || ''
+})
+
+const formatCountdown = (seconds) => {
+  const total = Math.max(Number(seconds || 0), 0)
+  const hours = Math.floor(total / 3600)
+  const minutes = Math.floor((total % 3600) / 60)
+  const secs = total % 60
+  if (hours > 0) {
+    return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(secs).padStart(2, '0')}`
+  }
+  return `${String(minutes).padStart(2, '0')}:${String(secs).padStart(2, '0')}`
+}
+
+const syncCountdownTimer = () => {
+  clearInterval(countdownTimer)
+  if (state.detail.orderStatus !== 0) {
+    countdownTimer = null
+    state.showPay = false
+    return
+  }
+  countdownTimer = setInterval(() => {
+    // 待付款详情页每秒推进一次倒计时。
+    state.now = Date.now()
+    if (remainingSeconds.value <= 0) {
+      state.showPay = false
+      if (Date.now() - state.lastTimeoutRefreshAt > 15000) {
+        // 超时后自动回源刷新，拿到后端真实状态。
+        state.lastTimeoutRefreshAt = Date.now()
+        init(false)
+      }
+    }
+  }, 1000)
+}
 
 onMounted(() => {
   init()
 })
 
-const init = async () => {
-  showLoadingToast({ message: texts.load, forbidClick: true })
+onBeforeUnmount(() => {
+  clearInterval(countdownTimer)
+})
+
+const init = async (showLoading = true) => {
+  if (showLoading) {
+    showLoadingToast({ message: texts.load, forbidClick: true })
+  }
   const { id } = route.query
   const { data } = await getOrderDetail(id)
   state.detail = data
-  closeToast()
+  state.now = Date.now()
+  syncCountdownTimer()
+  if (showLoading) {
+    closeToast()
+  }
 }
 
 const handleCancelOrder = (id) => {
@@ -102,7 +177,7 @@ const handleCancelOrder = (id) => {
     const res = await cancelOrder(id)
     if (res.code === 200) {
       showSuccessToast(texts.cancelSuccess)
-      init()
+      init(false)
     }
   }).catch(() => undefined)
 }
@@ -112,16 +187,25 @@ const handleConfirmOrder = (id) => {
     const res = await confirmOrder(id)
     if (res.code === 200) {
       showSuccessToast(texts.confirmSuccess)
-      init()
+      init(false)
     }
   }).catch(() => undefined)
 }
 
 const showPayPopup = () => {
+  if (!canPay.value) {
+    // 已超时的订单不再打开支付弹窗。
+    return
+  }
   state.showPay = true
 }
 
 const handlePayOrder = async (type) => {
+  if (!canPay.value) {
+    state.showPay = false
+    await init(false)
+    return
+  }
   await payOrder({ orderId: state.detail.orderId, payType: type })
   showSuccessToast(texts.paySuccess)
   state.showPay = false
@@ -170,6 +254,9 @@ const goToReviewCreate = (item) => {
       label {
         color: #999;
       }
+    }
+    .expire-tip {
+      color: #ee0a24;
     }
     .action-list {
       display: flex;
