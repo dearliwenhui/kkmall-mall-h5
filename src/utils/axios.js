@@ -27,7 +27,7 @@ axios.interceptors.response.use(res => {
   if (res.data.code != 200) {
     if (res.data.message) showFailToast(res.data.message)
 
-    if (res.data.code == 401) {
+    if (res.data.code == 401 || res.data.code == 403) {
       localStorage.removeItem('token')
       router.push({ path: '/login' })
     }
@@ -36,6 +36,15 @@ axios.interceptors.response.use(res => {
   }
 
   return res.data
+}, error => {
+  // 处理 HTTP 状态码层面的 401/403
+  if (error.response?.status === 401 || error.response?.status === 403) {
+    localStorage.removeItem('token')
+    router.push({ path: '/login' })
+  } else {
+    showFailToast('网络异常，请重试')
+  }
+  return Promise.reject(error)
 })
 
 export default axios
